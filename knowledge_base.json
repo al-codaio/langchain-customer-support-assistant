@@ -1,0 +1,15 @@
+{
+    "General": {
+        "Refund Policy": "Our refund policy allows full refunds within 30 days of purchase, provided the item is unused and in its original packaging. For more details, please visit our website's FAQ section.",
+        "Shipping Information": "Standard shipping takes 5-7 business days. Expedited shipping options are available at checkout. We currently ship to all states within the US.",
+        "Contact Support": "You can reach our support team via email at support@example.com or by calling 1-800-555-1234 during business hours (9 AM - 5 PM EST, Monday-Friday)."
+    },
+    "Technical": {
+        "Troubleshooting Login Issues": "If you're having trouble logging in, please try resetting your password. If that doesn't work, ensure your internet connection is stable and clear your browser cache.",
+        "Software Compatibility": "Our software is compatible with Windows 10+, macOS 11+, and Linux distributions supporting modern web browsers."
+    },
+    "Orders": {
+        "How to track an order": "You can track your order by visiting the 'Order History' section of your account and clicking on the tracking number provided for your specific order.",
+        "Cancelling an order": "Orders can be cancelled within 24 hours of placement. After this period, please contact support for assistance."
+    }
+}
