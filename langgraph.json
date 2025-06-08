@@ -1,16 +1,16 @@
 {
-    "name": "customer-support-assistant",
-    "version": "1.0",
-    "description": "A LangGraph-powered AI customer support agent.",
-    "type": "api",
-    "api_entrypoint": "server:app",
-    "graphs": {
-      "default": "main:graph"
-    },
-    "dependencies": {
-      "requirements": ["requirements.txt"]
-    },
-    "build_config": {
-      "python_version": "3.13"
-    }
+  "name": "customer-support-assistant",
+  "version": "1.0",
+  "description": "A LangGraph-powered AI customer support agent.",
+  "type": "api",
+  "api_entrypoint": "server:app",
+  "graphs": {
+    "default": "main:graph"
+  },
+  "dependencies": {
+    "requirements": ["requirements.txt"]
+  },
+  "build_config": {
+    "python_version": "3.11"
   }
+}
