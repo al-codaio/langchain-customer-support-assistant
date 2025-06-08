@@ -8,7 +8,7 @@
     "default": "main:graph"
   },
   "dependencies": {
-    "requirements": ["test123.txt"]
+    "requirements": ["./"]
   },
   "build_config": {
     "python_version": "3.11"
