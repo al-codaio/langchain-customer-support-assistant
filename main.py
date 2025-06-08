@@ -8,9 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-
 from langgraph.graph import StateGraph, END
-
 from config import Config
 from tools import search_product_knowledge_base, request_human_handoff
 
@@ -67,50 +65,87 @@ class ToolCallingAgent:
         self.runnable = self.prompt | self.llm.bind_tools(tools=self.tools)
 
     def __call__(self, state: AgentState):
+        def convert_to_message(m):
+            # If it's a dict, convert as before
+            if isinstance(m, dict):
+                if m.get("type") == "human":
+                    return HumanMessage(**{k: v for k, v in m.items() if k in ["content", "additional_kwargs", "example", "id", "name", "role", "type"]})
+                elif m.get("type") == "ai":
+                    return AIMessage(**{k: v for k, v in m.items() if k in ["content", "additional_kwargs", "example", "id", "name", "role", "type", "tool_calls", "invalid_tool_calls", "usage_metadata"]})
+                elif m.get("type") == "tool":
+                    return ToolMessage(**{k: v for k, v in m.items() if k in ["content", "tool_call_id"]})
+            # If it's a BaseMessage but not a HumanMessage, convert it
+            elif isinstance(m, BaseMessage) and not isinstance(m, (HumanMessage, AIMessage, ToolMessage)):
+                if getattr(m, "type", None) == "human":
+                    return HumanMessage(content=m.content, additional_kwargs=getattr(m, "additional_kwargs", {}), response_metadata=getattr(m, "response_metadata", {}), role=getattr(m, "role", None), type="human")
+                elif getattr(m, "type", None) == "ai":
+                    return AIMessage(content=m.content, additional_kwargs=getattr(m, "additional_kwargs", {}), response_metadata=getattr(m, "response_metadata", {}), role=getattr(m, "role", None), type="ai")
+                elif getattr(m, "type", None) == "tool":
+                    return ToolMessage(content=m.content, tool_call_id=getattr(m, "tool_call_id", None))
+            return m
+
+        state["messages"] = [convert_to_message(m) for m in state["messages"]]
+
         messages = state["messages"]
+        print("Agent received messages:", messages)
         try:
             response = self.runnable.invoke({"messages": messages})
-            return {"messages": [response]}
+            return {"messages": messages + [response]}
         except Exception as e:
             print(f"LLM call failed: {e}")
-            if state.get("retry_count", 0) < 2:
+            retry_count = state.get("retry_count", 0)
+            if retry_count < 2:
                 print("Retrying LLM call...")
-                return {"messages": [AIMessage("I'm having a bit of trouble understanding. Could you please rephrase your question?")]}
+                msg = AIMessage("I'm having a bit of trouble understanding. Could you please rephrase your question?")
+                return {"messages": [msg]}
             else:
-                return {"messages": [AIMessage("I apologize, but I'm unable to process your request at this moment. Let me connect you to a human agent.")],
-                        "human_handoff_requested": True}
+                msg = AIMessage("I apologize, but I'm unable to process your request at this moment. Let me connect you to a human agent.")
+                return {"messages": [msg], "human_handoff_requested": True}
 
 # 4. Define Nodes for the Graph
 def custom_tool_execution_node(state: AgentState):
     last_message = state["messages"][-1]
-    tool_calls = last_message.tool_calls
+    tool_calls = getattr(last_message, "tool_calls", [])
     tool_outputs = []
     tools_executed = []
 
     for tool_call in tool_calls:
-        tool_name = tool_call['name']
-        tool_args = tool_call['args']
-        tool_call_id = tool_call['id']
+        tool_name = tool_call.get('name')
+        tool_args = tool_call.get('args', {})
+        tool_call_id = tool_call.get('id')
 
         if tool_name not in AVAILABLE_TOOLS:
-            error_msg = f"Error: The assistant tried to use an unknown tool: '{tool_name}'. This suggests an issue with the agent's logic."
+            error_msg = (
+                f"Error: The assistant tried to use an unknown tool: '{tool_name}'. "
+                "This suggests an issue with the agent's logic."
+            )
             print(error_msg)
-            tool_outputs.append(ToolMessage(content=error_msg, tool_call_id=tool_call_id))
-            tool_outputs.append(AIMessage(content="There was an error trying to use a tool. Let me connect you to a human agent."))
+            tool_outputs.extend([
+                ToolMessage(content=error_msg, tool_call_id=tool_call_id),
+                AIMessage(content="There was an error trying to use a tool. Let me connect you to a human agent.")
+            ])
             return {"messages": tool_outputs, "human_handoff_requested": True}
+
         try:
-            tool_func = AVAILABLE_TOOLS[tool_name]
-            output = tool_func.invoke(tool_args)
+            output = AVAILABLE_TOOLS[tool_name].invoke(tool_args)
             tool_outputs.append(ToolMessage(content=str(output), tool_call_id=tool_call_id))
             tools_executed.append(tool_name)
             if tool_name == "request_human_handoff":
-                tool_outputs.append(AIMessage(content=f"Handoff requested. Reason: {tool_args.get('reason', 'No specific reason provided.')}. A human agent will be with you shortly."))
+                tool_outputs.append(
+                    AIMessage(
+                        content=f"Handoff requested. Reason: {tool_args.get('reason', 'No specific reason provided.')}. A human agent will be with you shortly."
+                    )
+                )
                 return {"messages": tool_outputs, "human_handoff_requested": True}
         except Exception as e:
-            error_msg = f"Error executing tool '{tool_name}': {e}. This issue requires human intervention."
+            error_msg = (
+                f"Error executing tool '{tool_name}': {e}. This issue requires human intervention."
+            )
             print(error_msg)
-            tool_outputs.append(ToolMessage(content=error_msg, tool_call_id=tool_call_id))
-            tool_outputs.append(AIMessage(content=f"I encountered an error while trying to fulfill your request using a tool. Let me connect you to a human agent."))
+            tool_outputs.extend([
+                ToolMessage(content=error_msg, tool_call_id=tool_call_id),
+                AIMessage(content="I encountered an error while trying to fulfill your request using a tool. Let me connect you to a human agent.")
+            ])
             return {"messages": tool_outputs, "human_handoff_requested": True}
 
     return {"messages": tool_outputs, "tools_used": tools_executed}
@@ -129,15 +164,9 @@ def should_continue(state: AgentState) -> Literal["tools", "__end__"]:
 
 # 5. Build the LangGraph
 workflow = StateGraph(AgentState)
-
-# Add nodes
 workflow.add_node("agent", ToolCallingAgent(llm, tools))
 workflow.add_node("execute_tools", custom_tool_execution_node)
-
-# Set entry point
 workflow.set_entry_point("agent")
-
-# Add edges
 workflow.add_conditional_edges(
     "agent",
     should_continue,

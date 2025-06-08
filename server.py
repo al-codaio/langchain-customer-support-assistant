@@ -3,6 +3,7 @@ from langserve import add_routes
 import uvicorn
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -17,6 +18,21 @@ app = FastAPI(
     title="Customer Support Assistant LangServe",
     version="1.0",
     description="A LangGraph-powered customer support AI.",
+)
+
+origins = [
+    "http://localhost",
+    "http://localhost:8001",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8001",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 # The path `/customer-support` means API will be available at http://localhost:8000/customer-support/invoke
