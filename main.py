@@ -201,6 +201,6 @@ def run_assistant():
                     print("Connecting you to a human agent now...")
                 print("-" * 30)
 
-# Comment out the lines below if you will be deploying to LangGraph Platform
-# if __name__ == "__main__":
-#     run_assistant()
+# Comment out the lines below if you will be deploying to LangGraph Platform or running on a local server
+if __name__ == "__main__":
+    run_assistant()
