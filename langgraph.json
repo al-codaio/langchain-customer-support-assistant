@@ -7,9 +7,7 @@
   "graphs": {
     "default": "main:graph"
   },
-  "dependencies": {
-    "requirements": ["./"]
-  },
+  "dependencies": ["./"],
   "build_config": {
     "python_version": "3.11"
   }
