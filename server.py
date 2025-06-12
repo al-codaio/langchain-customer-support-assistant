@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from langserve import add_routes
 import uvicorn
 import os
@@ -25,6 +25,7 @@ origins = [
     "http://localhost:8001",
     "http://127.0.0.1",
     "http://127.0.0.1:8001",
+    "https://ht-this-loincloth-1-da815a843dbc58748be6fa5a306d9826.us.langgraph.app",
 ]
 
 app.add_middleware(
