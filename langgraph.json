@@ -12,6 +12,6 @@
     "python_version": "3.11"
   },
   "http": {
-    "app": "server.py:app"
+    "app": "./server.py:app"
   }
 }
