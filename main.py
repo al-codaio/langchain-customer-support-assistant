@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from typing import TypedDict, Annotated, List, Literal, ANy
+from typing import TypedDict, Annotated, List, Literal
 import operator
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
@@ -22,9 +22,6 @@ AVAILABLE_TOOLS = {
 os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2", "false")
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT", "Customer Support Assistant Template")
-
-class CustomerSupportBatchRequest(BaseModel):
-    messages: List[Any] 
 
 # 1. Define Graph State
 class AgentState(TypedDict):
