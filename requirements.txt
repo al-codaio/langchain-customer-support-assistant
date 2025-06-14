@@ -1,8 +1,9 @@
-langchain
-langgraph
-langchain-openai
-langserve
+langchain>=0.1.16
+langgraph>=0.0.30
+langchain-openai>=0.1.7
+langserve>=0.0.40
 python-dotenv
-fastapi
+fastapi>=0.104.0
+pydantic>=2.0
 uvicorn
 sse_starlette
